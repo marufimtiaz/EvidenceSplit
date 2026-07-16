@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,14 +15,14 @@ class DocumentService:
     async def process_uploads(
         db: AsyncSession,
         analysis_id: uuid.UUID,
-        uploaded_files: list[tuple[str, str]],
+        uploaded_files: list[tuple[str, str, str]],
     ) -> list[str]:
         warnings = []
 
-        for file_path, filename in uploaded_files:
+        for file_path, filename, content_type in uploaded_files:
             try:
                 # 1. Parse PDF and extract page-aware text
-                pages, warning = PDFParser.parse_pdf(file_path, filename)
+                pages, warning = await asyncio.to_thread(PDFParser.parse_pdf, file_path, filename, content_type)
                 if warning:
                     warnings.append(f"{filename}: {warning}")
 
@@ -40,7 +41,7 @@ class DocumentService:
                 )
 
                 # 3. Chunk and persist chunks in database
-                chunks = Chunker.chunk_document(pages)
+                chunks = await asyncio.to_thread(Chunker.chunk_document, pages)
                 for index, chunk in enumerate(chunks):
                     await ChunkRepository.create_chunk(
                         db=db,
@@ -51,10 +52,12 @@ class DocumentService:
                         section=chunk.section,
                         chunk_index=index,
                     )
+                await db.commit()
 
             except Exception as e:
                 logger.error(f"Failed to process upload {filename}: {e}")
-                warnings.append(f"Failed to process {filename}: {str(e)}")
+                warnings.append(f"{filename}: PDF could not be processed.")
+                await db.rollback()
 
                 # Persist FAILED document placeholder for diagnostic tracing
                 await DocumentRepository.create_document(
@@ -69,5 +72,6 @@ class DocumentService:
                     page_count=None,
                     processing_status="FAILED",
                 )
+                await db.commit()
 
         return warnings

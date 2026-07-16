@@ -39,10 +39,8 @@ async def test_pdf_parser_ocr_scanned(tmp_path: str) -> None:
     # Empty pages (representing a scanned PDF without text layer)
     create_test_pdf(pdf_path, ["", ""])
 
-    pages, warning = PDFParser.parse_pdf(pdf_path, "scanned.pdf")
-    assert warning is not None
-    assert "Scanned-document OCR is not supported" in warning
-    assert len(pages) == 2
+    with pytest.raises(ValueError, match="Scanned-document OCR is not supported"):
+        PDFParser.parse_pdf(pdf_path, "scanned.pdf")
 
 
 @pytest.mark.anyio

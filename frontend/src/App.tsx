@@ -1,121 +1,108 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
 import './App.css'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+type ProgressEvent = {
+  stage: string
+  progress: number
+  message: string
+  warning?: string
+  error?: string
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [claim, setClaim] = useState('')
+  const [files, setFiles] = useState<FileList | null>(null)
+  const [progress, setProgress] = useState<ProgressEvent | null>(null)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const sourceRef = useRef<EventSource | null>(null)
+
+  useEffect(() => () => sourceRef.current?.close(), [])
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setProgress(null)
+    setSubmitting(true)
+    sourceRef.current?.close()
+
+    const body = new FormData()
+    body.append('claim', claim)
+    Array.from(files ?? []).forEach((file) => body.append('files', file))
+
+    try {
+      const response = await fetch(`${API_BASE}/api/analyses`, { method: 'POST', body })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.detail ?? 'Could not start analysis.')
+      }
+      const { analysis_id: analysisId } = await response.json()
+      const source = new EventSource(`${API_BASE}/api/analyses/${analysisId}/events`)
+      sourceRef.current = source
+
+      const update = (message: MessageEvent<string>) => {
+        const next = JSON.parse(message.data) as ProgressEvent
+        setProgress(next)
+        if (next.stage === 'COMPLETED' || next.stage === 'COMPLETED_WITH_WARNINGS' || next.stage === 'FAILED') {
+          setSubmitting(false)
+          source.close()
+        }
+      }
+
+      source.addEventListener('progress', update)
+      source.addEventListener('completed', update)
+      source.addEventListener('completed_with_warnings', update)
+      source.addEventListener('failed', update)
+      source.onerror = () => {
+        setError('Progress connection was interrupted.')
+        setSubmitting(false)
+        source.close()
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not start analysis.')
+      setSubmitting(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <main>
+      <section className="panel">
+        <p className="eyebrow">EvidenceSplit</p>
+        <h1>Compare scientific evidence</h1>
+        <form onSubmit={submit}>
+          <label htmlFor="claim">Scientific claim</label>
+          <textarea
+            id="claim"
+            value={claim}
+            onChange={(event) => setClaim(event.target.value)}
+            placeholder="Enter the exact claim to analyze"
+            required
+          />
+          <label htmlFor="files">Research PDFs</label>
+          <input
+            id="files"
+            type="file"
+            accept="application/pdf,.pdf"
+            multiple
+            onChange={(event) => setFiles(event.target.files)}
+          />
+          <button disabled={submitting || !claim.trim()}>{submitting ? 'Analyzing…' : 'Analyze evidence'}</button>
+        </form>
+
+        {progress && (
+          <section className="progress" aria-live="polite">
+            <div><strong>{progress.message}</strong><span>{progress.progress}%</span></div>
+            <progress value={progress.progress} max="100" />
+            {progress.warning && <p className="warning">{progress.warning}</p>}
+            {progress.error && <p className="error">{progress.error}</p>}
+          </section>
+        )}
+        {error && <p className="error" role="alert">{error}</p>}
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
 }
 

@@ -11,7 +11,11 @@ class ParsedPage(BaseModel):
 
 class PDFParser:
     @staticmethod
-    def parse_pdf(file_path: str, filename: str) -> tuple[list[ParsedPage], str | None]:
+    def parse_pdf(
+        file_path: str, filename: str, content_type: str = "application/pdf"
+    ) -> tuple[list[ParsedPage], str | None]:
+        if content_type != "application/pdf":
+            raise ValueError(f"File {filename} is not a valid PDF file.")
         # Validate size
         size_mb = os.path.getsize(file_path) / (1024 * 1024)
         if size_mb > settings.MAX_UPLOAD_SIZE_MB:
@@ -44,12 +48,10 @@ class PDFParser:
 
         doc.close()
 
-        warning_message = None
-        # OCR Check: Check if PDF has minimal text
-        if total_text_length < 20 or (total_text_length / page_count) < 10:
-            warning_message = (
+        if page_count == 0 or total_text_length < 20 or (total_text_length / page_count) < 10:
+            raise ValueError(
                 "This PDF appears to contain little or no extractable text. "
                 "Scanned-document OCR is not supported in this version."
             )
 
-        return parsed_pages, warning_message
+        return parsed_pages, None

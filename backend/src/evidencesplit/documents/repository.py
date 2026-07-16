@@ -31,8 +31,7 @@ class DocumentRepository:
             processing_status=processing_status,
         )
         db.add(doc)
-        await db.commit()
-        await db.refresh(doc)
+        await db.flush()
         return doc
 
     @staticmethod
@@ -80,6 +79,5 @@ class ChunkRepository:
             search_vector=search_vector,
         )
         db.add(chunk)
-        await db.commit()
-        await db.refresh(chunk)
+        await db.flush()
         return chunk

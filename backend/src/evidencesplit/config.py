@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     UNPAYWALL_EMAIL: str = Field(default="admin@example.com")
 
     # Other pipeline configuration limits
-    EMBEDDING_MODEL: str = Field(default="sentence-transformers/all-MiniLM-L6-v2")
+    EMBEDDING_MODEL: str = Field(default="gemini-embedding-001")
+    EMBEDDING_DIMENSIONS: int = Field(default=384)
     MAX_UPLOAD_FILES: int = Field(default=5)
     MAX_UPLOAD_SIZE_MB: int = Field(default=20)
     MAX_PDF_PAGES: int = Field(default=100)
