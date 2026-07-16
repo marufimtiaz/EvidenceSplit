@@ -43,8 +43,12 @@ class DiscoveryService:
         warnings: list[str] = []
         full_text_count = 0
         abstract_count = 0
+        attempted_count = 0
         logger.info("discovery_candidates analysis_id=%s count=%s", analysis_id, len(candidates))
         for candidate in candidates:
+            if full_text_count + abstract_count >= settings.TARGET_LIVE_PAPERS:
+                break
+            attempted_count += 1
             stored_full_text = False
             full_text_error: Exception | None = None
             if candidate.doi and full_text_count < settings.MAX_LIVE_FULL_TEXT_PAPERS:
@@ -84,11 +88,21 @@ class DiscoveryService:
                     logger.exception("Abstract persistence failed for %s", candidate.title)
                     warnings.append(f"{candidate.title}: the live source could not be processed.")
             else:
-                warnings.append(f"{candidate.title}: no usable open full text or abstract was available.")
+                logger.info(
+                    "discovery_candidate_skipped analysis_id=%s reason=no_full_text_or_abstract title=%s",
+                    analysis_id,
+                    candidate.title,
+                )
+        usable_count = full_text_count + abstract_count
+        if usable_count < settings.TARGET_LIVE_PAPERS:
+            warnings.append(
+                f"Live discovery found {usable_count} of {settings.TARGET_LIVE_PAPERS} usable papers "
+                f"after checking {attempted_count} candidates."
+            )
         logger.info(
-            "discovery_complete analysis_id=%s candidates=%s full_text=%s abstracts=%s warnings=%s",
+            "discovery_complete analysis_id=%s candidates_checked=%s full_text=%s abstracts=%s warnings=%s",
             analysis_id,
-            len(candidates),
+            attempted_count,
             full_text_count,
             abstract_count,
             len(warnings),
