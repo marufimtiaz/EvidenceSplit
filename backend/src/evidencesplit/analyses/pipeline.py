@@ -202,8 +202,8 @@ async def run_analysis_pipeline(
                 exc.status_code,
                 exc.detail,
             )
-            if exc.provider == "gemini" and exc.status_code == 429:
-                error_message = "Gemini rate limit reached. Wait a minute and try again."
+            if exc.status_code == 429:
+                error_message = f"{exc.provider.title()} rate limit reached. Wait a minute and try again."
         async with async_session() as session:
             try:
                 await AnalysisRepository.update(

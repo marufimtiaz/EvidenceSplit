@@ -5,8 +5,12 @@ from pydantic import Field
 class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="postgresql+asyncpg://postgres:postgres@localhost:5435/evidencesplit")
     SQL_ECHO: bool = Field(default=False)
+    AI_PROVIDER: str = Field(default="gemini")
     GEMINI_API_KEY: str = Field(default="")
     GEMINI_GENERATION_MODEL: str = Field(default="gemini-3.5-flash")
+    OPENROUTER_API_KEY: str = Field(default="")
+    OPENROUTER_GENERATION_MODEL: str = Field(default="openai/gpt-4.1-mini")
+    OPENROUTER_EMBEDDING_MODEL: str = Field(default="openai/text-embedding-3-small")
     DEMO_MODE: bool = Field(default=False)
     OPENALEX_API_KEY: str = Field(default="")
     UNPAYWALL_EMAIL: str = Field(default="admin@example.com")

@@ -17,7 +17,7 @@ EvidenceSplit analyzes research PDFs against a scientific claim and produces a b
 
 1. Enter a claim and upload up to five research PDFs.
 2. EvidenceSplit parses and indexes the documents.
-3. Relevant passages are retrieved and classified with Gemini.
+3. Relevant passages are retrieved and classified with Gemini or OpenRouter.
 4. The results page presents the evidence, citations, and limitations.
 
 ## Tech stack
@@ -25,7 +25,7 @@ EvidenceSplit analyzes research PDFs against a scientific claim and produces a b
 - **Frontend:** React, TypeScript, Vite
 - **Backend:** FastAPI, Python
 - **Database:** PostgreSQL with pgvector
-- **AI:** Gemini generation and embedding models
+- **AI:** Gemini or OpenRouter generation and embedding models
 - **Deployment:** Docker Compose
 
 ## Quick start
@@ -36,11 +36,21 @@ Copy the environment template:
 cp .env.example .env
 ```
 
-Add your Gemini API key to `.env`:
+Choose an AI provider and add its API key to `.env`:
 
 ```dotenv
+AI_PROVIDER=gemini
 GEMINI_API_KEY=your-key-here
 ```
+
+To use OpenRouter for both generation and embeddings instead:
+
+```dotenv
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-openrouter-key-here
+```
+
+Create an OpenRouter key at <https://openrouter.ai/settings/keys>.
 
 Build and start the complete application:
 
@@ -77,7 +87,11 @@ docker compose down -v
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
+| `AI_PROVIDER` | AI adapter set: `gemini` or `openrouter` | `gemini` |
 | `GEMINI_API_KEY` | Gemini API authentication | Required |
+| `OPENROUTER_API_KEY` | OpenRouter API authentication | Required when selected |
+| `OPENROUTER_GENERATION_MODEL` | OpenRouter evidence and synthesis model | `openai/gpt-4.1-mini` |
+| `OPENROUTER_EMBEDDING_MODEL` | OpenRouter embedding model | `openai/text-embedding-3-small` |
 | `SQL_ECHO` | Include verbose SQL statements in backend logs | `false` |
 | `DEMO_MODE` | Initial state of the frontend Demo mode switch | `false` |
 | `GEMINI_GENERATION_MODEL` | Evidence extraction and synthesis model | `gemini-3.5-flash` |
