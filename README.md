@@ -80,7 +80,7 @@ docker compose down -v
 | `GEMINI_API_KEY` | Gemini API authentication | Required |
 | `SQL_ECHO` | Include verbose SQL statements in backend logs | `false` |
 | `DEMO_MODE` | Initial state of the frontend Demo mode switch | `false` |
-| `GEMINI_GENERATION_MODEL` | Evidence extraction and synthesis model | `gemini-2.5-flash` |
+| `GEMINI_GENERATION_MODEL` | Evidence extraction and synthesis model | `gemini-3.5-flash` |
 | `EMBEDDING_MODEL` | Document embedding model | `gemini-embedding-001` |
 | `EMBEDDING_DIMENSIONS` | Embedding vector size | `384` |
 | `VITE_API_URL` | API URL used by the frontend | `http://localhost:8000` |
