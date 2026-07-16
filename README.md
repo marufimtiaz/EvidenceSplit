@@ -2,7 +2,25 @@
 
 > See where scientific evidence supports, contradicts, or qualifies a claim.
 
+<p align="center">
+  <img src="frontend/paper.png" alt="Stack of research papers" width="180">
+</p>
+
 EvidenceSplit analyzes research PDFs against a scientific claim and produces a balanced, cited evidence report. It surfaces supporting, contradicting, and qualifying findings without pretending to determine universal truth.
+
+## Screenshots
+
+### Analysis workspace
+
+![EvidenceSplit analysis workspace](images/annotate-2026-07-16_18-22-40.png)
+
+### Evidence assessment
+
+![Balanced evidence assessment and paper counts](images/annotate-2026-07-16_18-23-31.png)
+
+### Source-level findings
+
+![Supporting, contradicting, and qualifying source findings](images/annotate-2026-07-16_18-23-48.png)
 
 ## What it does
 
