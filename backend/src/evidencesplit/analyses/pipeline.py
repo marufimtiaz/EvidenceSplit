@@ -7,9 +7,12 @@ from evidencesplit.database import async_session
 from evidencesplit.analyses.repository import AnalysisRepository
 from evidencesplit.shared.types import AnalysisStatus
 from evidencesplit.documents.service import DocumentService
-from evidencesplit.providers.gemini_embeddings import GeminiEmbeddingService
+from evidencesplit.evidence.analyzer import analyze_and_store_evidence
+from evidencesplit.evidence.models import EvidenceFinding
+from evidencesplit.providers.factory import get_embedding_service, get_evidence_analysis_service
 from evidencesplit.retrieval.embeddings import index_analysis_chunks
 from evidencesplit.retrieval.hybrid import hybrid_retrieve
+from evidencesplit.retrieval.schemas import RetrievedPassage
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +81,7 @@ async def run_analysis_pipeline(
                     completed=completed,
                 )
 
-        embedding_service = GeminiEmbeddingService()
+        embedding_service = get_embedding_service()
         async with async_session() as session:
             await AnalysisRepository.update(session, analysis_id, status=AnalysisStatus.INDEXING, progress=55)
             indexed_count = await index_analysis_chunks(session, analysis_id, embedding_service)
@@ -98,8 +101,26 @@ async def run_analysis_pipeline(
             analysis_id,
         )
 
+        async with async_session() as session:
+            await AnalysisRepository.update(
+                session,
+                analysis_id,
+                status=AnalysisStatus.ANALYZING_EVIDENCE,
+                progress=82,
+            )
+            evidence_findings = await _analyze_with_retry(
+                session,
+                analysis_id,
+                await _get_claim(session, analysis_id),
+                passages,
+            )
+        logger.info(
+            "Stored %s evidence findings for analysis %s",
+            len(evidence_findings),
+            analysis_id,
+        )
+
         for status, progress in [
-            (AnalysisStatus.ANALYZING_EVIDENCE, 82),
             (AnalysisStatus.SYNTHESIZING, 90),
             (completion_status(warnings), 100),
         ]:
@@ -113,7 +134,7 @@ async def run_analysis_pipeline(
                     completed=status in {AnalysisStatus.COMPLETED, AnalysisStatus.COMPLETED_WITH_WARNINGS},
                 )
     except Exception:
-        logger.exception("Failed to index or retrieve evidence for analysis %s", analysis_id)
+        logger.exception("Failed to analyze evidence for analysis %s", analysis_id)
         async with async_session() as session:
             try:
                 await AnalysisRepository.update(
@@ -135,3 +156,26 @@ async def _get_claim(session: AsyncSession, analysis_id: uuid.UUID) -> str:
     if analysis is None:
         raise RuntimeError("Analysis not found.")
     return analysis.claim
+
+
+async def _analyze_with_retry(
+    session: AsyncSession,
+    analysis_id: uuid.UUID,
+    claim: str,
+    passages: list[RetrievedPassage],
+) -> list[EvidenceFinding]:
+    service = get_evidence_analysis_service()
+    for attempt in range(2):
+        try:
+            return await analyze_and_store_evidence(
+                session,
+                analysis_id,
+                claim,
+                passages,
+                service,
+            )
+        except Exception:
+            if attempt == 1:
+                raise
+            logger.warning("Retrying evidence analysis for %s", analysis_id)
+    return []
