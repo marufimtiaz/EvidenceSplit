@@ -78,6 +78,32 @@ docker compose up --build
 
 Open the frontend at <http://localhost:5173>. The API is available at <http://localhost:8000>.
 
+## Production deployment
+
+Set a production database password and your selected AI provider credentials in `.env`:
+
+```dotenv
+POSTGRES_PASSWORD=replace-with-a-url-safe-password
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-openrouter-key
+```
+
+Start the standalone production stack:
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+Caddy serves the application at <http://localhost> by default and proxies `/api` to the private backend. PostgreSQL and FastAPI are not published to the host. Set `APP_PORT` in `.env` to use another port.
+
+```bash
+# Follow production logs
+docker compose -f docker-compose.prod.yml logs -f
+
+# Stop the production stack
+docker compose -f docker-compose.prod.yml down
+```
+
 ### Deterministic demo mode
 
 The frontend includes a **Demo mode** switch. Demo submissions use prepared fixture evidence and do not depend on Gemini quota. To make the switch enabled initially, set this in `.env`:
@@ -143,6 +169,7 @@ See [.env.example](.env.example) for the complete configuration.
 backend/            FastAPI application and analysis pipeline
 frontend/           React user interface
 docker-compose.yml  Local full-stack environment
+docker-compose.prod.yml  Production stack with Caddy
 docs/               Project guide and milestone documentation
 ```
 

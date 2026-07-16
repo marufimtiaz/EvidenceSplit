@@ -1,0 +1,80 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-evidencesplit}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-evidencesplit}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-evidencesplit}
+      SQL_ECHO: ${SQL_ECHO:-false}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_GENERATION_MODEL: ${GEMINI_GENERATION_MODEL:-gemini-3.5-flash}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_GENERATION_MODEL: ${OPENROUTER_GENERATION_MODEL:-openai/gpt-4.1-mini}
+      OPENROUTER_EMBEDDING_MODEL: ${OPENROUTER_EMBEDDING_MODEL:-openai/text-embedding-3-small}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-384}
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      UNPAYWALL_EMAIL: ${UNPAYWALL_EMAIL:-admin@example.com}
+      OPENALEX_RESULT_LIMIT: ${OPENALEX_RESULT_LIMIT:-20}
+      TARGET_LIVE_PAPERS: ${TARGET_LIVE_PAPERS:-5}
+      MAX_LIVE_FULL_TEXT_PAPERS: ${MAX_LIVE_FULL_TEXT_PAPERS:-5}
+      REMOTE_DOWNLOAD_TIMEOUT_SECONDS: ${REMOTE_DOWNLOAD_TIMEOUT_SECONDS:-20}
+      MAX_REMOTE_PDF_SIZE_MB: ${MAX_REMOTE_PDF_SIZE_MB:-25}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ""
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${APP_PORT:-80}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:8080/health >/dev/null || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+
+volumes:
+  pgdata_prod:
