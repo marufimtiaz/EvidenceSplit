@@ -12,14 +12,18 @@ class ParsedPage(BaseModel):
 class PDFParser:
     @staticmethod
     def parse_pdf(
-        file_path: str, filename: str, content_type: str = "application/pdf"
+        file_path: str,
+        filename: str,
+        content_type: str = "application/pdf",
+        max_size_mb: int | None = None,
     ) -> tuple[list[ParsedPage], str | None]:
         if content_type != "application/pdf":
             raise ValueError(f"File {filename} is not a valid PDF file.")
         # Validate size
+        size_limit = max_size_mb or settings.MAX_UPLOAD_SIZE_MB
         size_mb = os.path.getsize(file_path) / (1024 * 1024)
-        if size_mb > settings.MAX_UPLOAD_SIZE_MB:
-            raise ValueError(f"File {filename} exceeds the maximum size of {settings.MAX_UPLOAD_SIZE_MB}MB.")
+        if size_mb > size_limit:
+            raise ValueError(f"File {filename} exceeds the maximum size of {size_limit}MB.")
 
         # Validate PDF header (MIME check)
         with open(file_path, "rb") as f:

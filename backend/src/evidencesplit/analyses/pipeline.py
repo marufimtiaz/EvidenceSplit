@@ -3,12 +3,12 @@ import logging
 import uuid
 import os
 
-import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from evidencesplit.database import async_session
 from evidencesplit.analyses.repository import AnalysisRepository
 from evidencesplit.shared.types import AnalysisStatus
 from evidencesplit.documents.service import DocumentService
+from evidencesplit.discovery.service import DiscoveryService
 from evidencesplit.evidence.analyzer import analyze_and_store_evidence
 from evidencesplit.evidence.aggregator import aggregate_and_store_assessments
 from evidencesplit.evidence.models import EvidenceFinding
@@ -21,6 +21,7 @@ from evidencesplit.retrieval.embeddings import index_analysis_chunks
 from evidencesplit.retrieval.hybrid import hybrid_retrieve
 from evidencesplit.retrieval.schemas import RetrievedPassage
 from evidencesplit.synthesis.service import synthesize_and_store_report
+from evidencesplit.shared.http_errors import ProviderHTTPError
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,12 @@ async def run_analysis_pipeline(
     staging_warnings: list[str] | None = None,
 ) -> None:
     warnings = list(staging_warnings or [])
+    logger.info(
+        "pipeline_start analysis_id=%s uploaded_files=%s staging_warnings=%s",
+        analysis_id,
+        len(uploaded_files),
+        len(warnings),
+    )
     try:
         async with async_session() as session:
             await AnalysisRepository.update(session, analysis_id, status=AnalysisStatus.PROCESSING_UPLOADS, progress=10)
@@ -71,22 +78,24 @@ async def run_analysis_pipeline(
         return
 
     try:
-        for status, progress in [
-            (AnalysisStatus.SEARCHING, 25),
-            (AnalysisStatus.FETCHING_FULL_TEXT, 40),
-        ]:
-            await asyncio.sleep(0.5)
-            async with async_session() as session:
-                completed = status in {
-                    AnalysisStatus.COMPLETED,
-                    AnalysisStatus.COMPLETED_WITH_WARNINGS,
-                }
+        async with async_session() as session:
+            await AnalysisRepository.update(session, analysis_id, status=AnalysisStatus.SEARCHING, progress=25)
+        await asyncio.sleep(0.2)
+        async with async_session() as session:
+            await AnalysisRepository.update(session, analysis_id, status=AnalysisStatus.FETCHING_FULL_TEXT, progress=40)
+            discovery_warnings = await DiscoveryService().discover_and_store(
+                session,
+                analysis_id,
+                await _get_claim(session, analysis_id),
+            )
+            warnings.extend(discovery_warnings)
+            if warnings:
                 await AnalysisRepository.update(
                     session,
                     analysis_id,
-                    status=status,
-                    progress=progress,
-                    completed=completed,
+                    status=AnalysisStatus.FETCHING_FULL_TEXT,
+                    progress=40,
+                    warning_message="; ".join(warnings),
                 )
 
         embedding_service = get_embedding_service()
@@ -175,11 +184,26 @@ async def run_analysis_pipeline(
                 progress=100,
                 completed=True,
             )
+        logger.info(
+            "pipeline_complete analysis_id=%s status=%s warnings=%s",
+            analysis_id,
+            terminal_status.value,
+            len(warnings),
+        )
     except Exception as exc:
         logger.exception("Failed to analyze evidence for analysis %s", analysis_id)
         error_message = "Pipeline failed."
-        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
-            error_message = "Gemini rate limit reached. Wait a minute and try again."
+        if isinstance(exc, ProviderHTTPError):
+            logger.error(
+                "pipeline_external_failure analysis_id=%s provider=%s operation=%s status=%s detail=%s",
+                analysis_id,
+                exc.provider,
+                exc.operation,
+                exc.status_code,
+                exc.detail,
+            )
+            if exc.provider == "gemini" and exc.status_code == 429:
+                error_message = "Gemini rate limit reached. Wait a minute and try again."
         async with async_session() as session:
             try:
                 await AnalysisRepository.update(

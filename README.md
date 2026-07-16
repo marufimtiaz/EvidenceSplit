@@ -63,8 +63,8 @@ Then restart with `docker compose up --build`. You can switch back to live PDF a
 Useful commands:
 
 ```bash
-# Follow service logs
-docker compose logs -f
+# Follow backend pipeline and provider errors
+docker compose logs -f backend
 
 # Stop the application
 docker compose down
@@ -78,11 +78,14 @@ docker compose down -v
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | Gemini API authentication | Required |
+| `SQL_ECHO` | Include verbose SQL statements in backend logs | `false` |
 | `DEMO_MODE` | Initial state of the frontend Demo mode switch | `false` |
 | `GEMINI_GENERATION_MODEL` | Evidence extraction and synthesis model | `gemini-2.5-flash` |
 | `EMBEDDING_MODEL` | Document embedding model | `gemini-embedding-001` |
 | `EMBEDDING_DIMENSIONS` | Embedding vector size | `384` |
 | `VITE_API_URL` | API URL used by the frontend | `http://localhost:8000` |
+| `OPENALEX_API_KEY` | OpenAlex API authentication for live discovery | Required for live mode |
+| `UNPAYWALL_EMAIL` | Contact email required by the Unpaywall API | Required for OA lookup |
 
 See [.env.example](.env.example) for the complete configuration.
 
@@ -97,7 +100,7 @@ See [.env.example](.env.example) for the complete configuration.
 
 ## Current scope
 
-- The current build analyzes uploaded, text-based PDFs; live OpenAlex/Unpaywall discovery is not enabled yet.
+- Live mode searches OpenAlex and uses Unpaywall for open-access PDFs, with abstract fallback when full text is unavailable.
 - Upload limits are five PDFs, 20 MB per file, and 100 pages per document.
 - Scanned PDFs require OCR before upload.
 - Results depend on the supplied papers and should support—not replace—expert scientific judgment.

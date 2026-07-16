@@ -11,8 +11,8 @@ class RetrievedPassage(BaseModel):
     title: str
     source_type: SourceType
     content: str
-    page_start: int
-    page_end: int
+    page_start: int | None
+    page_end: int | None
     section: str | None
     semantic_score: float
     keyword_score: float

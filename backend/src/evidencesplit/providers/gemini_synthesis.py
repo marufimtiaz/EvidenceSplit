@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import Sequence
 
 import httpx
@@ -11,6 +12,9 @@ from evidencesplit.synthesis.schemas import (
     GeminiComparisonOutput,
     PaperForSynthesis,
 )
+from evidencesplit.shared.http_errors import ProviderHTTPError
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiSynthesisService:
@@ -40,13 +44,31 @@ class GeminiSynthesisService:
                 "responseJsonSchema": GeminiComparisonOutput.model_json_schema(),
             },
         }
-        async with httpx.AsyncClient(timeout=60) as client:
+        logger.info(
+            "external_request provider=gemini operation=synthesis papers=%s findings=%s model=%s",
+            len(papers),
+            len(allowed_ids),
+            settings.GEMINI_GENERATION_MODEL,
+        )
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
             response = await client.post(
                 url,
                 headers={"x-goog-api-key": settings.GEMINI_API_KEY},
                 json=payload,
             )
-            response.raise_for_status()
+        if response.is_error:
+            error = ProviderHTTPError.from_response("gemini", "synthesis", response)
+            logger.error(
+                "external_failure provider=%s operation=%s status=%s papers=%s detail=%s",
+                error.provider,
+                error.operation,
+                error.status_code,
+                len(papers),
+                error.detail,
+            )
+            raise error
         text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
         output = GeminiComparisonOutput.model_validate_json(text)
-        return format_comparison_report(output, allowed_ids)
+        report = format_comparison_report(output, allowed_ids)
+        logger.info("external_success provider=gemini operation=synthesis assessment=%s", report.overall_assessment)
+        return report

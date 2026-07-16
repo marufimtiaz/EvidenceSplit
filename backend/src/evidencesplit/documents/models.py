@@ -36,8 +36,8 @@ class Chunk(Base):
         nullable=False,
     )
     content: Mapped[str] = mapped_column(String, nullable=False)
-    page_start: Mapped[int] = mapped_column(Integer, nullable=False)
-    page_end: Mapped[int] = mapped_column(Integer, nullable=False)
+    page_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    page_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     section: Mapped[str | None] = mapped_column(String, nullable=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(384), nullable=True)
