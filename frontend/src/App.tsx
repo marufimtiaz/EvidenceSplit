@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
+import paperLogo from '../paper.png'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -202,7 +203,7 @@ function App() {
     <div className="app-shell">
       <nav className="topbar">
         <a className="brand" href="#top" aria-label="EvidenceSplit home">
-          <span className="brand-mark" aria-hidden="true"><i /><i /></span>
+          <img className="brand-mark" src={paperLogo} alt="" aria-hidden="true" />
           <span>Evidence<span>Split</span></span>
         </a>
         <div className="topbar-meta">

@@ -8,9 +8,7 @@ body {
 .topbar { width: min(1440px, calc(100% - 64px)); height: 82px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(24, 37, 37, .12); }
 .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); font-size: 1.16rem; font-weight: 800; letter-spacing: -.03em; text-decoration: none; }
 .brand > span:last-child > span { color: var(--teal); }
-.brand-mark { position: relative; width: 27px; height: 27px; display: inline-flex; gap: 3px; transform: rotate(-8deg); }
-.brand-mark i { display: block; width: 12px; border-radius: 3px 10px 3px 3px; background: var(--ink); }
-.brand-mark i:last-child { border-radius: 10px 3px 3px 3px; background: var(--teal); }
+.brand-mark { width: 34px; height: 34px; object-fit: contain; }
 .topbar-meta { display: flex; align-items: center; gap: 9px; color: #71807d; font-size: .78rem; font-weight: 650; letter-spacing: .03em; }
 .system-dot { width: 7px; height: 7px; border-radius: 50%; background: #38a572; box-shadow: 0 0 0 4px rgba(56, 165, 114, .12); }
 
