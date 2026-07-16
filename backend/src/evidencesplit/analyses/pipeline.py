@@ -10,10 +10,15 @@ from evidencesplit.documents.service import DocumentService
 from evidencesplit.evidence.analyzer import analyze_and_store_evidence
 from evidencesplit.evidence.aggregator import aggregate_and_store_assessments
 from evidencesplit.evidence.models import EvidenceFinding
-from evidencesplit.providers.factory import get_embedding_service, get_evidence_analysis_service
+from evidencesplit.providers.factory import (
+    get_embedding_service,
+    get_evidence_analysis_service,
+    get_synthesis_service,
+)
 from evidencesplit.retrieval.embeddings import index_analysis_chunks
 from evidencesplit.retrieval.hybrid import hybrid_retrieve
 from evidencesplit.retrieval.schemas import RetrievedPassage
+from evidencesplit.synthesis.service import synthesize_and_store_report
 
 logger = logging.getLogger(__name__)
 
@@ -129,19 +134,45 @@ async def run_analysis_pipeline(
             analysis_id,
         )
 
-        for status, progress in [
-            (AnalysisStatus.SYNTHESIZING, 90),
-            (completion_status(warnings), 100),
-        ]:
-            await asyncio.sleep(0.5)
-            async with async_session() as session:
+        async with async_session() as session:
+            await AnalysisRepository.update(
+                session,
+                analysis_id,
+                status=AnalysisStatus.SYNTHESIZING,
+                progress=96,
+            )
+            try:
+                report = await synthesize_and_store_report(
+                    session,
+                    analysis_id,
+                    await _get_claim(session, analysis_id),
+                    get_synthesis_service(),
+                )
+                logger.info(
+                    "Stored %s comparison report for analysis %s",
+                    report.overall_assessment,
+                    analysis_id,
+                )
+            except Exception:
+                logger.exception("Synthesis failed for analysis %s", analysis_id)
+                warnings.append("The evidence was grouped, but the synthesized overview was unavailable.")
                 await AnalysisRepository.update(
                     session,
                     analysis_id,
-                    status=status,
-                    progress=progress,
-                    completed=status in {AnalysisStatus.COMPLETED, AnalysisStatus.COMPLETED_WITH_WARNINGS},
+                    status=AnalysisStatus.SYNTHESIZING,
+                    progress=96,
+                    warning_message="; ".join(warnings),
                 )
+
+        async with async_session() as session:
+            terminal_status = completion_status(warnings)
+            await AnalysisRepository.update(
+                session,
+                analysis_id,
+                status=terminal_status,
+                progress=100,
+                completed=True,
+            )
     except Exception:
         logger.exception("Failed to analyze evidence for analysis %s", analysis_id)
         async with async_session() as session:

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Protocol, Sequence
 if TYPE_CHECKING:
     from evidencesplit.evidence.schemas import EvidenceFindingOutput
     from evidencesplit.retrieval.schemas import RetrievedPassage
+    from evidencesplit.synthesis.schemas import ComparisonReport, PaperForSynthesis
 
 
 class EmbeddingService(Protocol):
@@ -18,3 +19,12 @@ class EvidenceAnalysisService(Protocol):
         claim: str,
         passages: Sequence["RetrievedPassage"],
     ) -> list["EvidenceFindingOutput"]: ...
+
+
+class SynthesisService(Protocol):
+    async def synthesize(
+        self,
+        *,
+        claim: str,
+        papers: Sequence["PaperForSynthesis"],
+    ) -> "ComparisonReport": ...
