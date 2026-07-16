@@ -8,6 +8,7 @@ from evidencesplit.analyses.repository import AnalysisRepository
 from evidencesplit.shared.types import AnalysisStatus
 from evidencesplit.documents.service import DocumentService
 from evidencesplit.evidence.analyzer import analyze_and_store_evidence
+from evidencesplit.evidence.aggregator import aggregate_and_store_assessments
 from evidencesplit.evidence.models import EvidenceFinding
 from evidencesplit.providers.factory import get_embedding_service, get_evidence_analysis_service
 from evidencesplit.retrieval.embeddings import index_analysis_chunks
@@ -117,6 +118,14 @@ async def run_analysis_pipeline(
         logger.info(
             "Stored %s evidence findings for analysis %s",
             len(evidence_findings),
+            analysis_id,
+        )
+
+        async with async_session() as session:
+            paper_assessments = await aggregate_and_store_assessments(session, analysis_id)
+        logger.info(
+            "Stored %s paper assessments for analysis %s",
+            len(paper_assessments),
             analysis_id,
         )
 

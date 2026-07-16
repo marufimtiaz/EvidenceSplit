@@ -9,6 +9,11 @@ form { display: grid; gap: .75rem; }
 label { margin-top: .5rem; font-weight: 700; }
 textarea, input { width: 100%; border: 1px solid #bdc9c0; border-radius: 10px; padding: .9rem; font: inherit; }
 textarea { min-height: 130px; resize: vertical; }
+small { color: #5f6f64; }
+.file-list { display: grid; gap: .5rem; margin: .25rem 0; padding: 0; list-style: none; }
+.file-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .65rem .8rem; border-radius: 8px; background: #eef3ef; }
+.file-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-list button { width: auto; margin: 0; padding: .45rem .65rem; background: #52675a; }
 button { margin-top: .75rem; border: 0; border-radius: 10px; padding: 1rem; color: white; background: #216b47; font: inherit; font-weight: 700; cursor: pointer; }
 button:disabled { cursor: wait; opacity: .55; }
 .progress { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #dce4de; }

@@ -14,7 +14,7 @@ type ProgressEvent = {
 
 function App() {
   const [claim, setClaim] = useState('')
-  const [files, setFiles] = useState<FileList | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [progress, setProgress] = useState<ProgressEvent | null>(null)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -31,7 +31,7 @@ function App() {
 
     const body = new FormData()
     body.append('claim', claim)
-    Array.from(files ?? []).forEach((file) => body.append('files', file))
+    files.forEach((file) => body.append('files', file))
 
     try {
       const response = await fetch(`${API_BASE}/api/analyses`, { method: 'POST', body })
@@ -82,13 +82,46 @@ function App() {
             required
           />
           <label htmlFor="files">Research PDFs</label>
+          <small>Select several at once or add them in multiple batches (maximum 5).</small>
           <input
             id="files"
             type="file"
             accept="application/pdf,.pdf"
             multiple
-            onChange={(event) => setFiles(event.target.files)}
+            onChange={(event) => {
+              const selected = Array.from(event.target.files ?? [])
+              setFiles((current) => {
+                const combined = [...current, ...selected]
+                return combined
+                  .filter(
+                    (file, index) =>
+                      combined.findIndex(
+                        (candidate) =>
+                          candidate.name === file.name &&
+                          candidate.size === file.size &&
+                          candidate.lastModified === file.lastModified,
+                      ) === index,
+                  )
+                  .slice(0, 5)
+              })
+              event.target.value = ''
+            }}
           />
+          {files.length > 0 && (
+            <ul className="file-list">
+              {files.map((file) => (
+                <li key={`${file.name}-${file.size}-${file.lastModified}`}>
+                  <span>{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFiles((current) => current.filter((candidate) => candidate !== file))}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <button disabled={submitting || !claim.trim()}>{submitting ? 'Analyzing…' : 'Analyze evidence'}</button>
         </form>
 
