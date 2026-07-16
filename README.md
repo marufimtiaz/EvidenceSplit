@@ -94,7 +94,7 @@ Start the standalone production stack:
 docker compose -f docker-compose.prod.yml up --build -d
 ```
 
-Caddy serves the application at <http://localhost> by default and proxies `/api` to the private backend. PostgreSQL and FastAPI are not published to the host. Set `APP_PORT` in `.env` to use another port.
+Caddy serves the frontend on container port `80` and proxies `/api` to the private backend. PostgreSQL, FastAPI, and Caddy do not bind host ports. In Coolify, attach the public domain to the `frontend` service on port `80`; Coolify's proxy handles ports 80 and 443.
 
 ```bash
 # Follow production logs
