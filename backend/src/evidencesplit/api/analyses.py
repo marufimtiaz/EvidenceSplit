@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from evidencesplit.database import get_db
 from evidencesplit.analyses.service import AnalysisService
 from evidencesplit.analyses.repository import AnalysisRepository
-from evidencesplit.analyses.schemas import AnalysisRead
+from evidencesplit.analyses.schemas import AnalysisResult
+from evidencesplit.analyses.results import build_analysis_result
 from evidencesplit.config import settings
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
@@ -77,12 +78,12 @@ async def create_analysis(
     return {"analysis_id": str(analysis.id), "status": analysis.status}
 
 
-@router.get("/{analysis_id}", response_model=AnalysisRead)
+@router.get("/{analysis_id}", response_model=AnalysisResult)
 async def get_analysis(
     analysis_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-) -> AnalysisRead:
+) -> AnalysisResult:
     analysis = await AnalysisRepository.get(db, analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
-    return AnalysisRead.model_validate(analysis)
+    return await build_analysis_result(db, analysis)
