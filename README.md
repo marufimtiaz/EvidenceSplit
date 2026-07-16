@@ -52,13 +52,13 @@ Open the frontend at <http://localhost:5173>. The API is available at <http://lo
 
 ### Deterministic demo mode
 
-For a presentation that does not depend on Gemini quota, set this in `.env`:
+The frontend includes a **Demo mode** switch. Demo submissions use prepared fixture evidence and do not depend on Gemini quota. To make the switch enabled initially, set this in `.env`:
 
 ```dotenv
 DEMO_MODE=true
 ```
 
-Then restart with `docker compose up --build`. The frontend will offer three prepared claims and clearly label the results as fixture evidence. Set `DEMO_MODE=false` to restore normal PDF analysis.
+Then restart with `docker compose up --build`. You can switch back to live PDF analysis directly from the frontend at any time.
 
 Useful commands:
 
@@ -78,7 +78,7 @@ docker compose down -v
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | Gemini API authentication | Required |
-| `DEMO_MODE` | Use three deterministic prepared analyses | `false` |
+| `DEMO_MODE` | Initial state of the frontend Demo mode switch | `false` |
 | `GEMINI_GENERATION_MODEL` | Evidence extraction and synthesis model | `gemini-2.5-flash` |
 | `EMBEDDING_MODEL` | Document embedding model | `gemini-embedding-001` |
 | `EMBEDDING_DIMENSIONS` | Embedding vector size | `384` |

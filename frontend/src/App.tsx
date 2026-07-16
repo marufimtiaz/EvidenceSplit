@@ -51,7 +51,7 @@ type AnalysisResult = {
 }
 
 type DemoConfig = {
-  enabled: boolean
+  default_enabled: boolean
   claims: string[]
 }
 
@@ -105,16 +105,18 @@ function App() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [demoClaims, setDemoClaims] = useState<string[]>([])
+  const [demoClaim, setDemoClaim] = useState('')
+  const [demoMode, setDemoMode] = useState(false)
   const sourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
     void fetch(`${API_BASE}/api/analyses/demo-claims`)
       .then((response) => response.ok ? response.json() as Promise<DemoConfig> : null)
       .then((config) => {
-        if (config?.enabled && config.claims.length) {
+        if (config?.claims.length) {
           setDemoClaims(config.claims)
-          setClaim(config.claims[0])
-          setFiles([])
+          setDemoClaim(config.claims[0])
+          setDemoMode(config.default_enabled)
         }
       })
       .catch(() => undefined)
@@ -135,9 +137,11 @@ function App() {
     setSubmitting(true)
     sourceRef.current?.close()
 
+    const selectedClaim = demoMode ? demoClaim : claim
     const body = new FormData()
-    body.append('claim', claim)
-    files.forEach((file) => body.append('files', file))
+    body.append('claim', selectedClaim)
+    body.append('demo_mode', String(demoMode))
+    if (!demoMode) files.forEach((file) => body.append('files', file))
 
     try {
       const response = await fetch(`${API_BASE}/api/analyses`, { method: 'POST', body })
@@ -190,12 +194,22 @@ function App() {
         <p className="eyebrow">EvidenceSplit</p>
         <h1>Compare scientific evidence</h1>
         {demoClaims.length > 0 && (
+          <label className="mode-switch">
+            <span><strong>Demo mode</strong><small>Use prepared results without Gemini</small></span>
+            <input
+              type="checkbox"
+              checked={demoMode}
+              onChange={(event) => setDemoMode(event.target.checked)}
+            />
+          </label>
+        )}
+        {demoMode && (
           <p className="demo-notice">Demo mode is active. Choose a prepared claim for a deterministic presentation.</p>
         )}
         <form onSubmit={submit}>
           <label htmlFor="claim">Scientific claim</label>
-          {demoClaims.length > 0 ? (
-            <select id="claim" value={claim} onChange={(event) => setClaim(event.target.value)} required>
+          {demoMode ? (
+            <select id="claim" value={demoClaim} onChange={(event) => setDemoClaim(event.target.value)} required>
               {demoClaims.map((demoClaim) => <option key={demoClaim}>{demoClaim}</option>)}
             </select>
           ) : (
@@ -231,7 +245,7 @@ function App() {
               )}
             </>
           )}
-          <button disabled={submitting || !claim.trim()}>{submitting ? 'Analyzing…' : 'Analyze evidence'}</button>
+          <button disabled={submitting || !(demoMode ? demoClaim : claim).trim()}>{submitting ? 'Analyzing…' : 'Analyze evidence'}</button>
         </form>
         {progress && (
           <section className="progress" aria-live="polite">

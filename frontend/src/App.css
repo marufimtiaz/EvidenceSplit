@@ -11,6 +11,9 @@ form { display: grid; gap: .75rem; }
 label { margin-top: .5rem; font-weight: 700; }
 textarea, input, select { width: 100%; border: 1px solid #bdc9c0; border-radius: 10px; padding: .9rem; background: white; }
 textarea { min-height: 130px; resize: vertical; }
+.mode-switch { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0 0 1rem; padding: .9rem 1rem; border: 1px solid #cfe0d4; border-radius: 10px; background: #f4f8f5; cursor: pointer; }
+.mode-switch span { display: grid; gap: .15rem; }
+.mode-switch input { width: 1.25rem; height: 1.25rem; accent-color: #216b47; }
 .demo-notice { padding: .9rem 1rem; border-radius: 10px; color: #15553a; background: #e4f2e9; }
 small, .metadata { color: #647168; }
 button { margin-top: .75rem; border: 0; border-radius: 10px; padding: 1rem; color: white; background: #216b47; font-weight: 700; cursor: pointer; }

@@ -46,16 +46,21 @@ async def stage_upload(upload: UploadFile) -> tuple[StagedUpload | None, str | N
 async def create_analysis(
     background_tasks: BackgroundTasks,
     claim: str = Form(...),
+    demo_mode: bool = Form(default=False),
     files: list[UploadFile] = File(default=[]),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     if not claim.strip():
         raise HTTPException(status_code=400, detail="Claim must not be blank.")
-    if settings.DEMO_MODE and not is_demo_claim(claim):
+    if demo_mode and not is_demo_claim(claim):
         raise HTTPException(status_code=400, detail="Select one of the prepared demo claims.")
 
     # 1. Filter out empty files and validate upload count limit
     valid_files = [f for f in files if f.filename]
+    if demo_mode:
+        for upload in valid_files:
+            await upload.close()
+        valid_files = []
     if len(valid_files) > settings.MAX_UPLOAD_FILES:
         raise HTTPException(
             status_code=400,
@@ -72,7 +77,14 @@ async def create_analysis(
             staging_warnings.append(warning)
 
     try:
-        analysis = await AnalysisService.trigger_analysis(db, claim, uploaded_files, staging_warnings, background_tasks)
+        analysis = await AnalysisService.trigger_analysis(
+            db,
+            claim,
+            uploaded_files,
+            staging_warnings,
+            background_tasks,
+            demo_mode=demo_mode,
+        )
     except Exception:
         for file_path, _, _ in uploaded_files:
             if os.path.exists(file_path):
@@ -84,8 +96,8 @@ async def create_analysis(
 @router.get("/demo-claims")
 async def get_demo_claims() -> dict[str, bool | list[str]]:
     return {
-        "enabled": settings.DEMO_MODE,
-        "claims": DEMO_CLAIMS if settings.DEMO_MODE else [],
+        "default_enabled": settings.DEMO_MODE,
+        "claims": DEMO_CLAIMS,
     }
 
 
