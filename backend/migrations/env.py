@@ -10,6 +10,7 @@ from alembic import context
 from evidencesplit.config import settings
 from evidencesplit.database import Base
 from evidencesplit.analyses.models import Analysis  # noqa: F401
+from evidencesplit.documents.models import Document, Chunk  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

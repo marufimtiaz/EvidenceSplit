@@ -10,8 +10,9 @@ class AnalysisService:
     async def trigger_analysis(
         db: AsyncSession,
         claim: str,
+        uploaded_files: list[tuple[str, str]],
         background_tasks: BackgroundTasks,
     ) -> Analysis:
         analysis = await AnalysisRepository.create(db, claim)
-        background_tasks.add_task(run_analysis_pipeline, analysis.id)
+        background_tasks.add_task(run_analysis_pipeline, analysis.id, uploaded_files)
         return analysis
