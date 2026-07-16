@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from evidencesplit.database import get_db
 from evidencesplit.config import settings
+from evidencesplit.api.analyses import router as analyses_router
+from evidencesplit.api.events import router as events_router
 
 app = FastAPI(title="EvidenceSplit API")
 
@@ -14,6 +16,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(analyses_router)
+app.include_router(events_router)
 
 
 @app.get("/api/health")
