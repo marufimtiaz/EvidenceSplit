@@ -2,7 +2,9 @@ from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from evidencesplit.analyses.repository import AnalysisRepository
 from evidencesplit.analyses.pipeline import run_analysis_pipeline
+from evidencesplit.analyses.demo import run_demo_pipeline
 from evidencesplit.analyses.models import Analysis
+from evidencesplit.config import settings
 
 
 class AnalysisService:
@@ -15,5 +17,8 @@ class AnalysisService:
         background_tasks: BackgroundTasks,
     ) -> Analysis:
         analysis = await AnalysisRepository.create(db, claim)
-        background_tasks.add_task(run_analysis_pipeline, analysis.id, uploaded_files, staging_warnings)
+        if settings.DEMO_MODE:
+            background_tasks.add_task(run_demo_pipeline, analysis.id, uploaded_files)
+        else:
+            background_tasks.add_task(run_analysis_pipeline, analysis.id, uploaded_files, staging_warnings)
         return analysis

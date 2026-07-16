@@ -50,6 +50,11 @@ type AnalysisResult = {
   limitations: string[]
 }
 
+type DemoConfig = {
+  enabled: boolean
+  claims: string[]
+}
+
 const sourceLabels = {
   UPLOADED_PDF: 'Uploaded full text',
   LIVE_FULL_TEXT: 'Live full text',
@@ -99,9 +104,22 @@ function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [demoClaims, setDemoClaims] = useState<string[]>([])
   const sourceRef = useRef<EventSource | null>(null)
 
-  useEffect(() => () => sourceRef.current?.close(), [])
+  useEffect(() => {
+    void fetch(`${API_BASE}/api/analyses/demo-claims`)
+      .then((response) => response.ok ? response.json() as Promise<DemoConfig> : null)
+      .then((config) => {
+        if (config?.enabled && config.claims.length) {
+          setDemoClaims(config.claims)
+          setClaim(config.claims[0])
+          setFiles([])
+        }
+      })
+      .catch(() => undefined)
+    return () => sourceRef.current?.close()
+  }, [])
 
   async function loadResult(analysisId: string) {
     const response = await fetch(`${API_BASE}/api/analyses/${analysisId}`)
@@ -171,36 +189,47 @@ function App() {
       <section className="panel form-panel">
         <p className="eyebrow">EvidenceSplit</p>
         <h1>Compare scientific evidence</h1>
+        {demoClaims.length > 0 && (
+          <p className="demo-notice">Demo mode is active. Choose a prepared claim for a deterministic presentation.</p>
+        )}
         <form onSubmit={submit}>
           <label htmlFor="claim">Scientific claim</label>
-          <textarea id="claim" value={claim} onChange={(event) => setClaim(event.target.value)} required />
-          <label htmlFor="files">Research PDFs</label>
-          <small>Select several at once or add them in multiple batches (maximum 5).</small>
-          <input
-            id="files"
-            type="file"
-            accept="application/pdf,.pdf"
-            multiple
-            onChange={(event) => {
-              const selected = Array.from(event.target.files ?? [])
-              setFiles((current) => {
-                const combined = [...current, ...selected]
-                return combined.filter((file, index) => combined.findIndex(
-                  (candidate) => candidate.name === file.name && candidate.size === file.size && candidate.lastModified === file.lastModified,
-                ) === index).slice(0, 5)
-              })
-              event.target.value = ''
-            }}
-          />
-          {files.length > 0 && (
-            <ul className="file-list">
-              {files.map((file) => (
-                <li key={`${file.name}-${file.size}-${file.lastModified}`}>
-                  <span>{file.name}</span>
-                  <button type="button" onClick={() => setFiles((current) => current.filter((item) => item !== file))}>Remove</button>
-                </li>
-              ))}
-            </ul>
+          {demoClaims.length > 0 ? (
+            <select id="claim" value={claim} onChange={(event) => setClaim(event.target.value)} required>
+              {demoClaims.map((demoClaim) => <option key={demoClaim}>{demoClaim}</option>)}
+            </select>
+          ) : (
+            <>
+              <textarea id="claim" value={claim} onChange={(event) => setClaim(event.target.value)} required />
+              <label htmlFor="files">Research PDFs</label>
+              <small>Select several at once or add them in multiple batches (maximum 5).</small>
+              <input
+                id="files"
+                type="file"
+                accept="application/pdf,.pdf"
+                multiple
+                onChange={(event) => {
+                  const selected = Array.from(event.target.files ?? [])
+                  setFiles((current) => {
+                    const combined = [...current, ...selected]
+                    return combined.filter((file, index) => combined.findIndex(
+                      (candidate) => candidate.name === file.name && candidate.size === file.size && candidate.lastModified === file.lastModified,
+                    ) === index).slice(0, 5)
+                  })
+                  event.target.value = ''
+                }}
+              />
+              {files.length > 0 && (
+                <ul className="file-list">
+                  {files.map((file) => (
+                    <li key={`${file.name}-${file.size}-${file.lastModified}`}>
+                      <span>{file.name}</span>
+                      <button type="button" onClick={() => setFiles((current) => current.filter((item) => item !== file))}>Remove</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
           <button disabled={submitting || !claim.trim()}>{submitting ? 'Analyzing…' : 'Analyze evidence'}</button>
         </form>
@@ -209,12 +238,21 @@ function App() {
             <div><strong>{progress.message}</strong><span>{progress.progress}%</span></div>
             <progress value={progress.progress} max="100" />
             {progress.warning && <p className="warning">{progress.warning}</p>}
+            {progress.error && <p className="error" role="alert">{progress.error}</p>}
           </section>
         )}
         {error && <p className="error" role="alert">{error}</p>}
       </section>
 
-      {result && (
+      {result?.status === 'FAILED' && (
+        <section className="results">
+          <p className="notice error" role="alert">
+            {result.error_message ?? 'The analysis failed. Please try again.'}
+          </p>
+        </section>
+      )}
+
+      {result && result.status !== 'FAILED' && (
         <section className="results">
           <header className="result-header">
             <div>

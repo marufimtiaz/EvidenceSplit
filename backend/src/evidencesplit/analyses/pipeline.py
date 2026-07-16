@@ -2,6 +2,8 @@ import asyncio
 import logging
 import uuid
 import os
+
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from evidencesplit.database import async_session
 from evidencesplit.analyses.repository import AnalysisRepository
@@ -173,8 +175,11 @@ async def run_analysis_pipeline(
                 progress=100,
                 completed=True,
             )
-    except Exception:
+    except Exception as exc:
         logger.exception("Failed to analyze evidence for analysis %s", analysis_id)
+        error_message = "Pipeline failed."
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
+            error_message = "Gemini rate limit reached. Wait a minute and try again."
         async with async_session() as session:
             try:
                 await AnalysisRepository.update(
@@ -182,7 +187,7 @@ async def run_analysis_pipeline(
                     analysis_id,
                     status=AnalysisStatus.FAILED,
                     progress=100,
-                    error_message="Pipeline failed.",
+                    error_message=error_message,
                     completed=True,
                 )
             except Exception:

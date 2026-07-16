@@ -10,6 +10,7 @@ from evidencesplit.analyses.repository import AnalysisRepository
 from evidencesplit.analyses.schemas import AnalysisResult
 from evidencesplit.analyses.results import build_analysis_result
 from evidencesplit.config import settings
+from evidencesplit.analyses.demo import DEMO_CLAIMS, is_demo_claim
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
@@ -50,6 +51,8 @@ async def create_analysis(
 ) -> dict[str, str]:
     if not claim.strip():
         raise HTTPException(status_code=400, detail="Claim must not be blank.")
+    if settings.DEMO_MODE and not is_demo_claim(claim):
+        raise HTTPException(status_code=400, detail="Select one of the prepared demo claims.")
 
     # 1. Filter out empty files and validate upload count limit
     valid_files = [f for f in files if f.filename]
@@ -76,6 +79,14 @@ async def create_analysis(
                 os.unlink(file_path)
         raise
     return {"analysis_id": str(analysis.id), "status": analysis.status}
+
+
+@router.get("/demo-claims")
+async def get_demo_claims() -> dict[str, bool | list[str]]:
+    return {
+        "enabled": settings.DEMO_MODE,
+        "claims": DEMO_CLAIMS if settings.DEMO_MODE else [],
+    }
 
 
 @router.get("/{analysis_id}", response_model=AnalysisResult)

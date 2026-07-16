@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="postgresql+asyncpg://postgres:postgres@localhost:5435/evidencesplit")
     GEMINI_API_KEY: str = Field(default="")
     GEMINI_GENERATION_MODEL: str = Field(default="gemini-2.5-flash")
+    DEMO_MODE: bool = Field(default=False)
     OPENALEX_API_KEY: str = Field(default="")
     UNPAYWALL_EMAIL: str = Field(default="admin@example.com")
 

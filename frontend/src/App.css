@@ -1,7 +1,7 @@
 :root { color: #17211b; background: #eef3ef; font-family: Inter, system-ui, sans-serif; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-button, input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
 main { min-height: 100vh; padding: 2rem; }
 .panel, .results { width: min(1380px, 100%); margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px #193c2420; }
 .form-panel { width: min(720px, 100%); padding: 2.5rem; }
@@ -9,8 +9,9 @@ main { min-height: 100vh; padding: 2rem; }
 h1 { margin: .4rem 0 2rem; font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1; }
 form { display: grid; gap: .75rem; }
 label { margin-top: .5rem; font-weight: 700; }
-textarea, input { width: 100%; border: 1px solid #bdc9c0; border-radius: 10px; padding: .9rem; }
+textarea, input, select { width: 100%; border: 1px solid #bdc9c0; border-radius: 10px; padding: .9rem; background: white; }
 textarea { min-height: 130px; resize: vertical; }
+.demo-notice { padding: .9rem 1rem; border-radius: 10px; color: #15553a; background: #e4f2e9; }
 small, .metadata { color: #647168; }
 button { margin-top: .75rem; border: 0; border-radius: 10px; padding: 1rem; color: white; background: #216b47; font-weight: 700; cursor: pointer; }
 button:disabled { cursor: wait; opacity: .55; }

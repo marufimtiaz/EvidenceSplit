@@ -24,6 +24,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/evidencesplit
+      DEMO_MODE: ${DEMO_MODE:-false}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_GENERATION_MODEL: ${GEMINI_GENERATION_MODEL:-gemini-2.5-flash}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}

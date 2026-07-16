@@ -50,6 +50,16 @@ docker compose up --build
 
 Open the frontend at <http://localhost:5173>. The API is available at <http://localhost:8000>.
 
+### Deterministic demo mode
+
+For a presentation that does not depend on Gemini quota, set this in `.env`:
+
+```dotenv
+DEMO_MODE=true
+```
+
+Then restart with `docker compose up --build`. The frontend will offer three prepared claims and clearly label the results as fixture evidence. Set `DEMO_MODE=false` to restore normal PDF analysis.
+
 Useful commands:
 
 ```bash
@@ -68,6 +78,7 @@ docker compose down -v
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | Gemini API authentication | Required |
+| `DEMO_MODE` | Use three deterministic prepared analyses | `false` |
 | `GEMINI_GENERATION_MODEL` | Evidence extraction and synthesis model | `gemini-2.5-flash` |
 | `EMBEDDING_MODEL` | Document embedding model | `gemini-embedding-001` |
 | `EMBEDDING_DIMENSIONS` | Embedding vector size | `384` |
